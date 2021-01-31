@@ -1,0 +1,8 @@
+.DS_Store
+Dockerfile
+.idea/
+.vscode/
+__pycache__/
+venv/
+migrations/
+static/
