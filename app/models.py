@@ -1,22 +1,56 @@
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+
 
 db = SQLAlchemy()
 
-class Note(db.Model):
-    __tablename__ = "note"
+
+class Language(db.Model):
+    __tablename__ = 'language'
 
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(128))
-    content = db.Column(db.Text)
+    country_code = db.Column(db.String(10), unique=True, nullable=False)
+    created = db.Column(db.DateTime, default=datetime.now)
 
-    def __init__(self, title, content):
-        self.title = title
-        self.content = content
+    def __init__(self, country_code):
+        self.country_code = country_code
 
-    @property
-    def serialize(self):
-       return {
-           'id': self.id,
-           'title': self.title,
-           'content': self.content
-       }
+
+class Company(db.Model):
+    __tablename__ = 'company'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created = db.Column(db.DateTime, default=datetime.now)
+    # company_name = db.relationship('CompanyName', backref='company')
+    # company_tag = db.relationship('CompanyTag', backref='company')
+
+
+class CompanyName(db.Model):
+    __tablename__ = 'company_name'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
+    language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
+    name = db.Column(db.String(100))
+    created = db.Column(db.DateTime, default=datetime.now)
+
+    def __init__(self, company_id, language_id, name):
+        self.company_id = company_id
+        self.language_id = language_id
+        self.name = name
+
+
+class CompanyTag(db.Model):
+    __tablename__ = 'company_tag'
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
+    language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
+    tag = db.Column(db.String(100))
+    created = db.Column(db.DateTime, default=datetime.now)
+
+    def __init__(self, company_id, language_id, tag):
+        self.company_id = company_id
+        self.language_id = language_id
+        self.tag = tag

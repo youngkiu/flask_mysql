@@ -1,7 +1,7 @@
 import os
 
 if 'DEBUG' in os.environ:
-    print('Local debug mode')
+    print('[Debug] Local debug mode')
 
     from dotenv import load_dotenv
 

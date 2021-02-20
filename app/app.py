@@ -1,18 +1,8 @@
-from flask import (
-    Flask,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    jsonify,
-    abort
-)
-from flask_restful import (
-    Api,
-    Resource
-)
+from flask import Flask, request, jsonify, abort
+from flask_restful import Api,Resource
+from functools import wraps
 from config import SQLALCHEMY_DATABASE_URI, SECRET_KEY
-from models import db, Note
+from models import db, Company, Language, CompanyName, CompanyTag
 
 
 app = Flask(__name__)
@@ -22,96 +12,136 @@ app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
 db.init_app(app)
-
-
-@app.route('/add', methods=['POST', 'GET'])
-def add():
-    if request.method == 'POST':
-        note = Note(request.form['title'], request.form['content'])
-        db.session.add(note)
-        db.session.commit()
-        return redirect(url_for('index'))
-
-    return render_template('add.html')
-
-
-@app.route('/')
-def index():
-    note = Note.query.all()
-    return render_template('index.html', note=note)
-
-
-@app.route('/edit/<id>', methods=['POST', 'GET'])
-def edit(id):
-    note = Note.query.get(id)
-    if request.method == 'POST':
-        note.title = request.form['title']
-        note.content = request.form['content']
-        db.session.commit()
-        return redirect(url_for('index'))
-
-    return render_template('edit.html', note=note)
-
-
-@app.route('/delete/<id>', methods=['POST', 'GET'])
-def delete(id):
-    note = Note.query.get(id)
-    db.session.delete(note)
-    db.session.commit()
-
-    return redirect(url_for('index'))
-
-
 api = Api(app)
 
-class ApiNote(Resource):
+
+def check_name_language(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+class ApiCompany(Resource):
     def get(self):
-        note = Note.query.all()
-        return jsonify(json_list=[i.serialize for i in note])
+        name = request.args.get('name')
+        if name:
+            company_name = CompanyName.query \
+                .filter(CompanyName.name.like('%{}%'.format(name))) \
+                .first()
+            if company_name:
+                return company_name.name
 
-    def post(self):
+        tag = request.args.get('tag')
+        if tag:
+            companies = Company.query \
+                .join(CompanyTag) \
+                .filter(CompanyTag.tag == tag) \
+                .all()
+
+            results = []
+            for company in companies:
+                company_name = CompanyName.query \
+                    .filter_by(company_id=company.id) \
+                    .order_by(CompanyName.language_id) \
+                    .first()
+                results.append(company_name.name)
+
+            print(results)
+            return jsonify(results)
+
+    def put(self):
         req_data = request.get_json()
-        if req_data and all(key in req_data for key in ('title', 'content')):
-            note = Note(req_data['title'], req_data['content'])
-            db.session.add(note)
+        if req_data is None or any(key not in req_data for key in ('name', 'language', 'tag')):
+            abort(status=400, description='Invalid request data')
+
+        name = req_data['name']
+        country_code = req_data['language']
+        tag = req_data['tag']
+
+        company_names = CompanyName.query \
+            .filter_by(name=name) \
+            .all()
+        print(company_names)
+        if not company_names:
+            abort(status=400, description='Not found company name')
+
+        language = Language.query \
+            .filter_by(country_code=country_code) \
+            .first()
+        if language is None:
+            language = Language(country_code)
+            db.session.add(language)
             db.session.commit()
-            return jsonify({'id': note.id})
+            print('language', language.id)
 
-        abort(status=400, description='Invalid request data')
+        results = {'updated': []}
+        for company_name in company_names:
+            company_tag = CompanyTag.query \
+                .filter_by(
+                    company_id=company_name.company_id,
+                    language_id=language.id,
+                    tag=tag
+                ) \
+                .first()
+            if company_tag is None:
+                company_tag = CompanyTag(company_name.company_id, language.id, tag)
+                db.session.add(company_tag)
+                db.session.commit()
+                print('company_tag', company_tag.id)
 
-class ApiNoteId(Resource):
-    def get(self, id):
-        note = Note.query.get(id)
-        if not note:
-            abort(status=404, description='Not exist ID(%s)' % id)
+            results['updated'].append({name: tag})
 
-        return jsonify(note.serialize)
+        print(results)
+        return jsonify(results)
 
-    def put(self, id):
-        note = Note.query.get(id)
-        if not note:
-            abort(status=404, description='Not exist ID(%s)' % id)
-
+    def delete(self):
         req_data = request.get_json()
-        if req_data and all(key in req_data for key in ('title', 'content')):
-            note.title = req_data['title']
-            note.content = req_data['content']
+        if req_data is None or any(key not in req_data for key in ('name', 'language', 'tag')):
+            abort(status=400, description='Invalid request data')
+
+        name = req_data['name']
+        country_code = req_data['language']
+        tag = req_data['tag']
+
+        company_names = CompanyName.query \
+            .filter_by(name=name) \
+            .all()
+        print(company_names)
+        if not company_names:
+            abort(status=400, description='Not found company name')
+
+        language = Language.query \
+            .filter_by(country_code=country_code) \
+            .first()
+        if language is None:
+            language = Language(country_code)
+            db.session.add(language)
             db.session.commit()
-            return jsonify({'result': 'updated'})
+            print('language', language.id)
 
-        abort(status=400, description='Invalid request data')
+        results = {'deleted': []}
+        for company_name in company_names:
+            company_tag = CompanyTag.query \
+                .filter_by(
+                    company_id=company_name.company_id,
+                    language_id=language.id,
+                    tag=tag
+                ) \
+                .first()
+            if company_tag:
+                db.session.delete(company_tag)
+                db.session.commit()
+                print('company_tag', company_tag.id)
 
-    def delete(self, id):
-        note = Note.query.get(id)
-        if not note:
-            abort(status=404, description='Not exist ID(%s)' % id)
+            results['deleted'].append({name: tag})
 
-        db.session.delete(note)
-        db.session.commit()
-        return jsonify({'result': 'deleted'})
+        print(results)
+        return jsonify(results)
 
-api.add_resource(ApiNote, '/api/note')
-api.add_resource(ApiNoteId, '/api/note/<id>')
+
+api.add_resource(ApiCompany, '/api/company')
 
 
 if __name__ == '__main__':
