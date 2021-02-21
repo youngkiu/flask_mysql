@@ -20,6 +20,10 @@ app$ DEBUG=1 python upload.py ../db/wanted_temp_data.csv
 app$ DEBUG=1 python $PWD/app.py
 ```
 
+```shell
+app$ DEBUG=1 python export_api_spec.py
+```
+
 ### Test on development
 
 ```shell
