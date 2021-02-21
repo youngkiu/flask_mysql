@@ -1,3 +1,10 @@
+## Quick start
+
+```shell
+$ docker-compose up
+```
+Connect **http://localhost/api**
+
 ## How to develop
 
 ```shell
@@ -18,8 +25,8 @@ app$ DEBUG=1 python $PWD/app.py
 ```shell
 $ curl -i -X GET http://localhost:5000/api/company?name=Agi
 $ curl -i -X GET http://localhost:5000/api/company?tag=tag_26
-$ curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "infobank", "language": "en", "tag": "tag_5"}' http://localhost:5000/api/company
-$ curl -i -X DELETE -H "Content-Type: application/json" -d '{"name": "infobank", "language": "en", "tag": "tag_5"}' http://localhost:5000/api/company
+$ curl -i -X PUT -H "Content-Type: application/json" -d '{"language": "en", "name": "infobank", "tag": "tag_5"}' http://localhost:5000/api/company
+$ curl -i -X DELETE -H "Content-Type: application/json" -d '{"language": "en", "name": "infobank", "tag": "tag_5"}' http://localhost:5000/api/company
 ```
 
 ## How to run

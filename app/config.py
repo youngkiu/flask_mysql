@@ -1,7 +1,7 @@
 import os
 
 if 'DEBUG' in os.environ:
-    print('[Debug] Local debug mode')
+    print('[Debug] development mode')
 
     from dotenv import load_dotenv
 
@@ -10,7 +10,10 @@ if 'DEBUG' in os.environ:
     load_dotenv(dotenv_path=env_path)
 
     os.environ['DB_SERVER'] = '127.0.0.1'
+else:
+    print('[Debug] production mode')
 
+VERSION = os.environ['VERSION']
 SECRET_KEY = os.environ['SECRET_KEY']
 DB_USER = os.environ['DB_USER']
 DB_PASS = os.environ['DB_PASS']
