@@ -26,7 +26,7 @@ app$ DEBUG=1 python $PWD/app.py
 $ curl -i -X GET http://localhost:5000/api/company?name=Agi
 $ curl -i -X GET http://localhost:5000/api/company?tag=tag_26
 $ curl -i -X PUT -H "Content-Type: application/json" -d '{"language": "en", "name": "infobank", "tag": "tag_5"}' http://localhost:5000/api/company
-$ curl -i -X DELETE -H "Content-Type: application/json" -d '{"language": "en", "name": "infobank", "tag": "tag_5"}' http://localhost:5000/api/company
+$ curl -i -X DELETE -H "Content-Type: application/json" -d '{"language": "en", "name": "Avanade Asia Pte Ltd", "tag": "tag_11"}' http://localhost:5000/api/company
 ```
 
 ## How to run

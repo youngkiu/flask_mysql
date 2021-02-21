@@ -22,8 +22,13 @@ class Company(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     created = db.Column(db.DateTime, default=datetime.now)
-    # company_name = db.relationship('CompanyName', backref='company')
-    # company_tag = db.relationship('CompanyTag', backref='company')
+
+
+class Tag(db.Model):
+    __tablename__ = 'tag'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created = db.Column(db.DateTime, default=datetime.now)
 
 
 class CompanyName(db.Model):
@@ -32,13 +37,13 @@ class CompanyName(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
     language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
-    name = db.Column(db.String(100))
+    value = db.Column(db.String(100))
     created = db.Column(db.DateTime, default=datetime.now)
 
-    def __init__(self, company_id, language_id, name):
+    def __init__(self, company_id, language_id, value):
         self.company_id = company_id
         self.language_id = language_id
-        self.name = name
+        self.value = value
 
 
 class CompanyTag(db.Model):
@@ -47,10 +52,18 @@ class CompanyTag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
     language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
-    tag = db.Column(db.String(100))
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'))
+    value = db.Column(db.String(100))
     created = db.Column(db.DateTime, default=datetime.now)
 
-    def __init__(self, company_id, language_id, tag):
+    def __init__(self, company_id, language_id, tag_id, value):
         self.company_id = company_id
         self.language_id = language_id
-        self.tag = tag
+        self.tag_id = tag_id
+        self.value = value
+
+    @property
+    def serialize(self):
+        return {
+            'tag': self.value
+        }

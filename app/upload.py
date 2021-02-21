@@ -2,7 +2,7 @@ import os
 import sys
 import math
 import pandas as pd
-from models import Company, Language, CompanyName, CompanyTag
+from models import Company, Language, Tag, CompanyName, CompanyTag
 from app import app, db
 
 
@@ -14,12 +14,13 @@ def insert(csv_file):
         db.session.commit()
         print('company', company.id)
 
+        tag_ids = {}
         for column in df:
             value = row[column]
             if isinstance(value, float) and math.isnan(value):
                 continue
 
-            name_tag, country_code = column.split('_')
+            company_name_tag, country_code = column.split('_')
 
             language = Language.query \
                 .filter_by(country_code=country_code) \
@@ -30,18 +31,30 @@ def insert(csv_file):
                 db.session.commit()
             print('language', language.id)
 
-            if name_tag == 'company':
+            if company_name_tag == 'company':
                 company_name = CompanyName(company.id, language.id, value)
                 db.session.add(company_name)
                 db.session.commit()
-                print(company_name, '{}: {}'.format(name_tag, value))
-            elif name_tag == 'tag':
+                print(company_name, '{}: {}'.format(company_name_tag, value))
+            elif company_name_tag == 'tag':
                 tags = value.split('|')
-                for tag in tags:
-                    company_tag = CompanyTag(company.id, language.id, tag)
+
+                for tag_name in tags:
+                    tag_lang, tag_id = tag_name.split('_')
+
+                    if tag_id in tag_ids:
+                        tag = tag_ids[tag_id]
+                    else:
+                        tag = Tag()
+                        db.session.add(tag)
+                        db.session.commit()
+                        tag_ids[tag_id] = tag
+                    print('tag', tag.id)
+
+                    company_tag = CompanyTag(company.id, language.id, tag.id, tag_name)
                     db.session.add(company_tag)
                     db.session.commit()
-                    print(company_tag, '{}: {}'.format(name_tag, tag))
+                    print(company_tag, '{}: {}'.format(company_name_tag, tag_name))
             else:
                 assert False, 'Not supported column title({})'.format(column)
 
