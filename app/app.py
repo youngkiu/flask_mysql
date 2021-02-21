@@ -22,15 +22,18 @@ get_parser.add_argument('name', type=str, location='args', help='Company Name')
 get_parser.add_argument('tag', type=str, location='args', help='Company Tag')
 
 put_parser = reqparse.RequestParser()
-put_parser.add_argument('language', required=True,
-                        type=str, location='json', help='Country Code')
 put_parser.add_argument('name', required=True,
                         type=str, location='json', help='Company Name')
-put_parser.add_argument('tag', required=True,
-                        type=str, location='json', help='Company Tag')
+put_parser.add_argument('tag_ko', required=True,
+                        type=str, location='json', help='Company Tag (country code: ko)')
+put_parser.add_argument('tag_en', required=True,
+                        type=str, location='json', help='Company Tag (country code: en)')
+put_parser.add_argument('tag_ja', required=True,
+                        type=str, location='json', help='Company Tag (country code: ja)')
 
-delete_parser = put_parser.copy()
-delete_parser.remove_argument('language')
+delete_parser = reqparse.RequestParser()
+delete_parser.add_argument('name', required=True, type=str, location='json', help='Company Name')
+delete_parser.add_argument('tag', required=True, type=str, location='json', help='Company Tag')
 
 @api.route('/api/company')
 class ApiCompany(Resource):
@@ -81,36 +84,28 @@ class ApiCompany(Resource):
         if not company_names:
             abort(status=400, description='Not found company name')
 
-        language = Language.query \
-            .filter_by(country_code=args['language']) \
-            .first()
-        if language is None:
-            language = Language(args['language'])
-            db.session.add(language)
-            db.session.commit()
-            print('language', language.id)
+        tag = Tag()
+        db.session.add(tag)
+        db.session.commit()
+        print('tag', tag.id)
 
         results = {'Updated': []}
         for company_name in company_names:
-            company_tag = CompanyTag.query \
-                .filter_by(
-                    company_id=company_name.company_id,
-                    language_id=language.id,
-                    value=args['tag']
-                ) \
-                .first()
-            if company_tag is None:
-                tag = Tag()
-                db.session.add(tag)
-                db.session.commit()
-                print('tag', tag.id)
+            added_tags = []
+            for tag_lang in ['tag_ko', 'tag_en', 'tag_ja']:
+                _, country_code = tag_lang.split('_')
 
-                company_tag = CompanyTag(company_name.company_id, language.id, tag.id, args['tag'])
+                language = Language.query \
+                    .filter_by(country_code=country_code) \
+                    .first()
+
+                added_tags.append(args[tag_lang])
+                company_tag = CompanyTag(company_name.company_id, language.id, tag.id, args[tag_lang])
                 db.session.add(company_tag)
                 db.session.commit()
                 print('company_tag', company_tag.id)
 
-            results['Updated'].append({args['name']: args['tag']})
+            results['Updated'].append({args['name']: added_tags})
 
         return jsonify(results)
 
@@ -130,21 +125,21 @@ class ApiCompany(Resource):
 
         results = {'Deleted': []}
         for company_name in company_names:
-            company_tag = CompanyTag.query \
+            company_tags = CompanyTag.query \
                 .filter_by(
                     company_id=company_name.company_id,
                     value=args['tag']
                 ) \
-                .first()
+                .all()
             delted_tags = []
-            if company_tag:
-                company_tags = CompanyTag.query \
+            for company_tag in company_tags:
+                tags = CompanyTag.query \
                     .filter_by(
                         tag_id=company_tag.tag_id
                     )
-                for company_tag in company_tags.all():
+                for company_tag in tags.all():
                     delted_tags.append(company_tag.serialize['tag'])
-                company_tags.delete()
+                tags.delete()
                 db.session.commit()
                 print('company_tag', company_tag.id)
 
