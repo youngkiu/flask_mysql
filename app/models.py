@@ -10,7 +10,7 @@ class Language(db.Model):
     __tablename__ = 'language'
 
     id = db.Column(db.Integer, primary_key=True)
-    country_code = db.Column(db.String(10), unique=True, nullable=False)
+    country_code = db.Column(db.String(10), unique=True, nullable=False, index=True)
     created = db.Column(db.DateTime, default=datetime.now)
 
     def __init__(self, country_code):
@@ -27,7 +27,7 @@ class Company(db.Model):
 class Tag(db.Model):
     __tablename__ = 'tag'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, index=True)
     created = db.Column(db.DateTime, default=datetime.now)
 
 
@@ -35,35 +35,46 @@ class CompanyName(db.Model):
     __tablename__ = 'company_name'
 
     id = db.Column(db.Integer, primary_key=True)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
-    language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
-    value = db.Column(db.String(100))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), index=True)
+    language_id = db.Column(db.Integer, db.ForeignKey('language.id'), index=True)
+    name = db.Column(db.String(100), index=True)
     created = db.Column(db.DateTime, default=datetime.now)
 
-    def __init__(self, company_id, language_id, value):
+    def __init__(self, company_id, language_id, name):
         self.company_id = company_id
         self.language_id = language_id
-        self.value = value
+        self.name = name
+
+
+class TagName(db.Model):
+    __tablename__ = 'tag_name'
+
+    id = db.Column(db.Integer, primary_key=True)
+    language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), index=True)
+    name = db.Column(db.String(100), index=True)
+    created = db.Column(db.DateTime, default=datetime.now)
+
+    def __init__(self, tag_id, language_id, name):
+        self.tag_id = tag_id
+        self.language_id = language_id
+        self.name = name
+
+    @property
+    def serialize(self):
+        return {
+            'tag': self.name
+        }
 
 
 class CompanyTag(db.Model):
     __tablename__ = 'company_tag'
 
     id = db.Column(db.Integer, primary_key=True)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id'))
-    language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
-    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'))
-    value = db.Column(db.String(100))
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), index=True)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), index=True)
     created = db.Column(db.DateTime, default=datetime.now)
 
-    def __init__(self, company_id, language_id, tag_id, value):
+    def __init__(self, company_id, tag_id):
         self.company_id = company_id
-        self.language_id = language_id
         self.tag_id = tag_id
-        self.value = value
-
-    @property
-    def serialize(self):
-        return {
-            'tag': self.value
-        }

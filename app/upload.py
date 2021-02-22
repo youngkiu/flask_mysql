@@ -2,11 +2,62 @@ import os
 import sys
 import math
 import pandas as pd
-from models import Company, Language, Tag, CompanyName, CompanyTag
+from models import Company, Language, Tag, CompanyName, TagName, CompanyTag
 from app import app, db
 
 
-def insert(csv_file):
+def insert_tags(company_id, language_tags):
+    df = pd.DataFrame(language_tags)
+    for index, row in df.iterrows():
+        tag_id = None
+        for country_code in df.columns:
+            tag_value = row[country_code]
+            tag_name = TagName.query \
+                .filter_by(
+                    name=tag_value
+                ) \
+                .first()
+            curr_tag_id = tag_name.tag_id if tag_name else False
+            if tag_id is None:
+                tag_id = curr_tag_id
+            else:
+                assert tag_id == curr_tag_id, \
+                    'prev({}) != curr({}) of {}'.format(
+                        tag_id, curr_tag_id, tag_value)
+
+        assert tag_id is not None
+        if tag_id is False:
+            tag = Tag()
+            db.session.add(tag)
+            db.session.commit()
+            print('tag', tag.id)
+
+            for country_code in df.columns:
+                tag_value = row[country_code]
+                language = Language.query \
+                    .filter_by(country_code=country_code) \
+                    .first()
+                if language is None:
+                    language = Language(country_code)
+                    db.session.add(language)
+                    db.session.commit()
+                # print('language', language.id)
+
+                tag_name = TagName(tag.id, language.id, tag_value)
+                db.session.add(tag_name)
+                db.session.commit()
+                print('tag_name', tag_name.id, tag_value)
+
+            tag_id = tag.id
+        else:
+            print('already registered tag', tag_id)
+
+        company_tag = CompanyTag(company_id, tag_id)
+        db.session.add(company_tag)
+        db.session.commit()
+
+
+def insert_company(csv_file):
     df = pd.read_csv(csv_file)
     for index, row in df.iterrows():
         company = Company()
@@ -14,8 +65,8 @@ def insert(csv_file):
         db.session.commit()
         print('company', company.id)
 
-        tag_ids = {}
-        for column in df:
+        language_tags = {}
+        for column in df.columns:
             value = row[column]
             if isinstance(value, float) and math.isnan(value):
                 continue
@@ -29,34 +80,19 @@ def insert(csv_file):
                 language = Language(country_code)
                 db.session.add(language)
                 db.session.commit()
-            print('language', language.id)
+            # print('language', language.id)
 
             if company_name_tag == 'company':
                 company_name = CompanyName(company.id, language.id, value)
                 db.session.add(company_name)
                 db.session.commit()
-                print(company_name, '{}: {}'.format(company_name_tag, value))
+                print('company_name', company_name.id, value)
             elif company_name_tag == 'tag':
-                tags = value.split('|')
-
-                for tag_name in tags:
-                    tag_lang, tag_id = tag_name.split('_')
-
-                    if tag_id in tag_ids:
-                        tag = tag_ids[tag_id]
-                    else:
-                        tag = Tag()
-                        db.session.add(tag)
-                        db.session.commit()
-                        tag_ids[tag_id] = tag
-                    print('tag', tag.id)
-
-                    company_tag = CompanyTag(company.id, language.id, tag.id, tag_name)
-                    db.session.add(company_tag)
-                    db.session.commit()
-                    print(company_tag, '{}: {}'.format(company_name_tag, tag_name))
+                language_tags[country_code] = value.split('|')
             else:
                 assert False, 'Not supported column title({})'.format(column)
+
+        insert_tags(company.id, language_tags)
 
 
 if __name__ == '__main__':
@@ -70,4 +106,4 @@ if __name__ == '__main__':
         sys.exit()
 
     with app.app_context():
-        insert(csv_file_path)
+        insert_company(csv_file_path)
