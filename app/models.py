@@ -60,12 +60,6 @@ class TagName(db.Model):
         self.language_id = language_id
         self.name = name
 
-    @property
-    def serialize(self):
-        return {
-            'tag': self.name
-        }
-
 
 class CompanyTag(db.Model):
     __tablename__ = 'company_tag'

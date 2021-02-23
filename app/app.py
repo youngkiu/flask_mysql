@@ -16,11 +16,8 @@ api = Api(app,
           description='A company name & tag API')
 
 
-get_name_parser = reqparse.RequestParser()
-get_name_parser.add_argument('name', required=True, type=str, location='args')
-
-get_tag_parser = reqparse.RequestParser()
-get_tag_parser.add_argument('tag', required=True, type=str, location='args')
+get_parser = reqparse.RequestParser()
+get_parser.add_argument('name', required=True, type=str, location='args')
 
 put_parser = reqparse.RequestParser()
 put_parser.add_argument('name', required=True,
@@ -39,16 +36,19 @@ delete_parser.add_argument('tag', required=True, type=str, location='json', help
 
 @api.route('/company')
 class ApiCompany(Resource):
-    @api.expect(get_name_parser)
+    @api.expect(get_parser)
     @api.doc(responses={
         200: 'Success',
         400: 'Validation Error'
     })
     def get(self):
-        args = get_name_parser.parse_args()
+        args = get_parser.parse_args()
+
+        underscore_name = args['name'].replace('_', r'\_')
+        underscore_percent_name = underscore_name.replace('%', r'\%')
 
         company_name = CompanyName.query \
-            .filter(CompanyName.name.like('%{}%'.format(args['name']))) \
+            .filter(CompanyName.name.like('%{}%'.format(underscore_percent_name))) \
             .first()
         if company_name:
             return jsonify(company_name.name)
@@ -58,16 +58,16 @@ class ApiCompany(Resource):
 
 @api.route('/company/tag')
 class ApiCompanyTag(Resource):
-    @api.expect(get_tag_parser)
+    @api.expect(get_parser)
     @api.doc(responses={
         200: 'Success',
         400: 'Validation Error'
     })
     def get(self):
-        args = get_tag_parser.parse_args()
+        args = get_parser.parse_args()
 
         tag_names = TagName.query \
-            .filter_by(name=args['tag']) \
+            .filter_by(name=args['name']) \
             .all()
 
         results = []
@@ -103,7 +103,7 @@ class ApiCompanyTag(Resource):
         tag = Tag()
         db.session.add(tag)
         db.session.commit()
-        print('tag', tag.id)
+        print('add tag', tag.id)
 
         added_tags = []
         for tag_lang in ['tag_ko', 'tag_en', 'tag_ja']:
@@ -117,13 +117,13 @@ class ApiCompanyTag(Resource):
             tag_name = TagName(tag.id, language.id, args[tag_lang])
             db.session.add(tag_name)
             db.session.commit()
-            print('tag_name', tag_name.id)
 
         results = {'Updated': []}
         for company_name in company_names:
             company_tag = CompanyTag(company_name.company_id, tag.id)
             db.session.add(company_tag)
             db.session.commit()
+            print('add company_tag', company_tag.id)
             results['Updated'].append({company_name.name: added_tags})
 
         return jsonify(results)
@@ -161,7 +161,18 @@ class ApiCompanyTag(Resource):
                 if company_tag:
                     db.session.delete(company_tag)
                     db.session.commit()
-                    print('company_tag', company_tag.id)
+                    print('delete company_tag', company_tag.id)
+
+                    deleted_tags = []
+                    tag_name_ids = TagName.query \
+                        .filter_by(
+                            tag_id=tag_name.tag_id
+                        ) \
+                        .all()
+                    for tag_name_id in tag_name_ids:
+                        deleted_tags.append(tag_name_id.name)
+
+                    results['Deleted'].append({args['name']: deleted_tags})
 
             company_tag_count = CompanyTag.query \
                 .filter_by(
@@ -183,9 +194,7 @@ class ApiCompanyTag(Resource):
                     .first()
                 db.session.delete(tag)
                 db.session.commit()
-                print('tag', tag.id)
-
-            results['Deleted'].append({args['name']: args['tag']})
+                print('delete tag', tag.id)
 
         return jsonify(results)
 

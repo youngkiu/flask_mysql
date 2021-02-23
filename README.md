@@ -3,34 +3,37 @@
 ```shell
 $ docker-compose up
 ```
-Connect **http://localhost/api**
+Connect **http://localhost**
 
 ## How to develop
 
-```shell
-$ docker-compose run --rm --name project-db --service-ports db
-```
+### Set up the development environment
 
 ```shell
 $ conda create -n nginx_flask_postgres python=3.8
 $ conda activate nginx_flask_postgres
 $ pip install -r requirements.txt
+```
+
+### Launch the DB server
+
+```shell
+$ docker-compose run --rm --name project-db --service-ports db
+```
+
+### Upload the initial data of the DB server
+
+```shell
+$ conda activate nginx_flask_postgres
 app$ DEBUG=1 ./migrate.sh $PWD/../db/migrations/
 app$ DEBUG=1 python upload.py ../db/wanted_temp_data.csv
+```
+
+### Run application server
+
+```shell
+$ conda activate nginx_flask_postgres
 app$ DEBUG=1 python $PWD/app.py
-```
-
-```shell
-app$ DEBUG=1 python export_api_spec.py
-```
-
-### Test on development
-
-```shell
-$ curl -i -X GET http://localhost:5000/api/company?name=Agi
-$ curl -i -X GET http://localhost:5000/api/company?tag=tag_26
-$ curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "infobank", "tag_ko": "태그_5", "tag_en": "tag_5", "tag_ja": "タグ_5"}' http://localhost:5000/api/company
-$ curl -i -X DELETE -H "Content-Type: application/json" -d '{"name": "Avanade Asia Pte Ltd", "tag": "tag_11"}' http://localhost:5000/api/company
 ```
 
 ## How to run
@@ -38,20 +41,32 @@ $ curl -i -X DELETE -H "Content-Type: application/json" -d '{"name": "Avanade As
 ### nginx(:80) + flask(:5000) + postgres(:5432)
 
 ```shell
+$ docker-compose build
 $ docker-compose up -d
 $ docker-compose logs -f
 ```
+
+### Upload the initial data of the DB server
 
 ```shell
 $ docker exec -it project-app /bin/bash
 # python upload.py ../db/wanted_temp_data.csv
 ```
 
-### Test on production
+## How to test
+
+### Test by pytest
 
 ```shell
-$ curl -X GET http://localhost/api/company?name=Agi | jq '.'
-$ curl -X GET http://localhost/api/company?tag=tag_26 | jq '.'
-$ curl -X PUT -H "Content-Type: application/json" -d '{"name": "infobank", "tag_ko": "태그_5", "tag_en": "tag_5", "tag_ja": "タグ_5"}' http://localhost/api/company | jq '.'
-$ curl -X DELETE -H "Content-Type: application/json" -d '{"name": "Avanade Asia Pte Ltd", "tag": "tag_11"}' http://localhost/api/company | jq '.'
+$ docker exec -it project-app /bin/bash
+# pytest -v
+```
+
+### Test by curl
+
+```shell
+$ curl -X GET http://localhost/company?name=Agi
+$ curl -X GET http://localhost/company/tag?name=tag_26
+$ curl -X PUT -H "Content-Type: application/json" -d '{"name": "infobank", "tag_ko": "태그_5", "tag_en": "tag_5", "tag_ja": "タグ_5"}' http://localhost/company/tag
+$ curl -X DELETE -H "Content-Type: application/json" -d '{"name": "Avanade Asia Pte Ltd", "tag": "tag_11"}' http://localhost/company/tag
 ```
