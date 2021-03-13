@@ -59,25 +59,26 @@ class ApiCompanyTag(Resource):
     def get(self):
         args = get_parser.parse_args()
 
-        tag_names = TagName.query \
-            .filter_by(name=args['name']) \
+        companies = Company.query \
+            .join(CompanyTag) \
+            .join(Tag) \
+            .join(TagName) \
+            .filter(Company.id == CompanyTag.company_id) \
+            .filter(CompanyTag.tag_id == Tag.id) \
+            .filter(TagName.tag_id == Tag.id) \
+            .filter(TagName.name == args['name']) \
             .all()
 
         results = []
-        for tag_name in tag_names:
-            companies = Company.query \
-                .join(CompanyTag) \
-                .filter(CompanyTag.tag_id == tag_name.tag_id) \
-                .all()
-
-            for company in companies:
-                company_name = CompanyName.query \
-                    .filter_by(company_id=company.id) \
-                    .order_by(CompanyName.language_id) \
-                    .first()
-                results.append(company_name.name)
+        for company in companies:
+            company_name = CompanyName.query \
+                .filter_by(company_id=company.id) \
+                .order_by(CompanyName.language_id) \
+                .first()
+            results.append(company_name.name)
 
         return jsonify(results)
+
 
     @api.expect(put_parser)
     @api.doc(responses={
