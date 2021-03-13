@@ -20,6 +20,6 @@ DB_PASS = os.environ['DB_PASS']
 DB_SERVER = os.environ['DB_SERVER']
 DB_PORT = os.environ['DB_PORT']
 DB_NAME = os.environ['DB_NAME']
-SQLALCHEMY_DATABASE_URI = 'postgresql://{0}:{1}@{2}:{3}/{4}'.format(
+SQLALCHEMY_DATABASE_URI = 'postgresql://{}:{}@{}:{}/{}'.format(
     DB_USER, DB_PASS, DB_SERVER, DB_PORT, DB_NAME
 )

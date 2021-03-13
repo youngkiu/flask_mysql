@@ -1,6 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 
 db = SQLAlchemy()
