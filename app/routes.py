@@ -61,10 +61,10 @@ class ApiCompanyTag(Resource):
 
         companies = Company.query \
             .join(CompanyTag) \
+            .filter(CompanyTag.company_id == Company.id) \
             .join(Tag) \
+            .filter(Tag.id == CompanyTag.tag_id) \
             .join(TagName) \
-            .filter(Company.id == CompanyTag.company_id) \
-            .filter(CompanyTag.tag_id == Tag.id) \
             .filter(TagName.tag_id == Tag.id) \
             .filter(TagName.name == args['name']) \
             .all()
@@ -130,64 +130,33 @@ class ApiCompanyTag(Resource):
     def delete(self):
         args = delete_parser.parse_args()
 
-        company_names = CompanyName.query \
-            .filter_by(name=args['name']) \
+        company_tags = CompanyTag.query \
+            .join(Company) \
+            .filter(Company.id == CompanyTag.company_id) \
+            .join(CompanyName) \
+            .filter(CompanyName.company_id == Company.id) \
+            .filter(CompanyName.name == args['name']) \
+            .join(Tag) \
+            .filter(CompanyTag.tag_id == Tag.id) \
+            .join(TagName) \
+            .filter(TagName.tag_id == Tag.id) \
+            .filter(TagName.name == args['tag']) \
             .all()
-        if not company_names:
-            abort(status=400, description='Not found company name')
-
-        tag_names = TagName.query \
-            .filter_by(name=args['tag']) \
-            .all()
-        if not tag_names:
-            abort(status=400, description='Not found tag name')
 
         results = {'Deleted': []}
-        for tag_name in tag_names:
-            for company_name in company_names:
-                company_tag = CompanyTag.query \
-                    .filter_by(
-                        company_id=company_name.company_id,
-                        tag_id=tag_name.tag_id,
-                    ) \
-                    .first()
-
-                if company_tag:
-                    db.session.delete(company_tag)
-                    db.session.commit()
-                    print('delete company_tag', company_tag.id)
-
-                    deleted_tags = []
-                    tag_name_ids = TagName.query \
-                        .filter_by(
-                            tag_id=tag_name.tag_id
-                        ) \
-                        .all()
-                    for tag_name_id in tag_name_ids:
-                        deleted_tags.append(tag_name_id.name)
-
-                    results['Deleted'].append({args['name']: deleted_tags})
-
-            company_tag_count = CompanyTag.query \
+        for company_tag in company_tags:
+            tag_name_ids = TagName.query \
                 .filter_by(
-                    tag_id=tag_name.tag_id,
+                    tag_id=company_tag.tag_id
                 ) \
-                .count()
+                .all()
 
-            if company_tag_count == 0:
-                TagName.query \
-                    .filter_by(
-                        tag_id=tag_name.tag_id
-                    ) \
-                    .delete()
-                db.session.commit()
-                tag = Tag.query \
-                    .filter_by(
-                        id=tag_name.tag_id
-                    ) \
-                    .first()
-                db.session.delete(tag)
-                db.session.commit()
-                print('delete tag', tag.id)
+            deleted_tags = []
+            for tag_name_id in tag_name_ids:
+                deleted_tags.append(tag_name_id.name)
+            results['Deleted'].append({args['name']: deleted_tags})
+
+            db.session.delete(company_tag)
+            db.session.commit()
 
         return jsonify(results)
