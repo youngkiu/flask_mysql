@@ -10,8 +10,8 @@ Connect **http://localhost**
 ### Set up the development environment
 
 ```shell
-$ conda create -n nginx_flask_mysql python=3.8
-$ conda activate nginx_flask_mysql
+$ conda create -n flask_mysql python=3.8
+$ conda activate flask_mysql
 $ pip install -r requirements.txt
 ```
 
@@ -24,7 +24,7 @@ $ docker-compose run --rm --name project-db --service-ports db
 ### Upload the initial data of the DB server
 
 ```shell
-$ conda activate nginx_flask_mysql
+$ conda activate flask_mysql
 app$ DEBUG=1 ./migrate.sh $PWD/../db/migrations/
 app$ DEBUG=1 python upload.py ../db/wanted_temp_data.csv
 ```
@@ -32,13 +32,13 @@ app$ DEBUG=1 python upload.py ../db/wanted_temp_data.csv
 ### Run application server
 
 ```shell
-$ conda activate nginx_flask_mysql
+$ conda activate flask_mysql
 app$ DEBUG=1 python $PWD/app.py
 ```
 
 ## How to run
 
-### nginx(:80) + flask(:5000) + mysql(:3306)
+### flask(:5000) + mysql(:3306)
 
 ```shell
 $ docker-compose build

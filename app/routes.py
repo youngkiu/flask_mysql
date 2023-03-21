@@ -3,9 +3,7 @@ from flask import jsonify, abort
 from flask_restx import Api, Resource, reqparse
 from models import db, Company, Language, Tag, CompanyName, TagName, CompanyTag
 
-
 api = Api()
-
 
 get_parser = reqparse.RequestParser()
 get_parser.add_argument('name', required=True, type=str, location='args')
@@ -78,7 +76,6 @@ class ApiCompanyTag(Resource):
             results.append(company_name.name)
 
         return jsonify(results)
-
 
     @api.expect(put_parser)
     @api.doc(responses={
