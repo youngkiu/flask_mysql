@@ -1,8 +1,10 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from datetime import datetime
 
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 class Language(db.Model):

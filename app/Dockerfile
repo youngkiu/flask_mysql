@@ -1,7 +1,7 @@
-FROM python:3.8.2
+FROM python:3.8.16
 
 RUN apt-get update
-RUN apt-get install -y postgresql-client
+RUN apt-get install -y netcat
 
 COPY . /opt/project/app/
 WORKDIR /opt/project/app/

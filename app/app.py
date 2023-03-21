@@ -1,6 +1,6 @@
 from flask import Flask
 from config import VERSION, SQLALCHEMY_DATABASE_URI, SECRET_KEY
-from models import db
+from models import db, migrate
 from routes import api
 
 
@@ -12,6 +12,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
 # https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/#flask_sqlalchemy.SQLAlchemy.init_app
 db.init_app(app)
+# https://flask-migrate.readthedocs.io/en/latest/#command-reference
+migrate.init_app(app, db)
 # https://flask-restx.readthedocs.io/en/latest/api.html#flask_restx.Api.init_app
 api.init_app(app,
              version=VERSION, title='Company API',
